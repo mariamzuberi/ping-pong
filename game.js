@@ -1,5 +1,6 @@
 const canvas = document.getElementById('pong');
 const ctx = canvas.getContext('2d');
+const restartBtn = document.getElementById('restartBtn');
 
 // Responsive canvas
 function resizeCanvas() {
@@ -27,11 +28,11 @@ let score = 0;
 let lives = 3;
 let gameOver = false;
 
-// Get audio elements
+// Sounds
 const hitSound = document.getElementById("hit-sound");
 const gameOverSound = document.getElementById("gameover-sound");
 
-// Scaling for 3D effect
+// Scale effect
 function scaleByDepth(y) {
   const minScale = 0.6, maxScale = 1.2;
   return minScale + (maxScale - minScale) * (y / canvas.height);
@@ -50,10 +51,10 @@ function drawBackground() {
 function drawPaddle() {
   const scale = scaleByDepth(paddleY);
   ctx.save();
-  ctx.translate(paddleX + paddleWidth / 2, paddleY + paddleHeight / 2);
+  ctx.translate(paddleX + paddleWidth/2, paddleY + paddleHeight/2);
   ctx.scale(scale, scale);
   ctx.fillStyle = "#0ff";
-  ctx.fillRect(-paddleWidth / 2, -paddleHeight / 2, paddleWidth, paddleHeight);
+  ctx.fillRect(-paddleWidth/2, -paddleHeight/2, paddleWidth, paddleHeight);
   ctx.restore();
 }
 
@@ -64,7 +65,7 @@ function drawBall() {
   ctx.translate(ballX, ballY);
   ctx.scale(scale, scale);
   ctx.beginPath();
-  ctx.arc(0, 0, ballRadius, 0, Math.PI * 2);
+  ctx.arc(0, 0, ballRadius, 0, Math.PI*2);
   ctx.fillStyle = ballColor;
   ctx.fill();
   ctx.closePath();
@@ -89,9 +90,7 @@ function draw() {
   if (gameOver) {
     ctx.font = "40px Arial";
     ctx.fillStyle = "#f00";
-    ctx.fillText("Game Over!", canvas.width / 2 - 120, canvas.height / 2);
-    ctx.font = "20px Arial";
-    ctx.fillText("Press Enter to Restart", canvas.width / 2 - 110, canvas.height / 2 + 40);
+    ctx.fillText("Game Over!", canvas.width/2 - 120, canvas.height/2);
   }
 }
 
@@ -120,9 +119,8 @@ function update() {
   ) {
     ballDY = -Math.abs(ballDY);
     score++;
-    ballColor = `hsl(${Math.random() * 360}, 80%, 60%)`;
+    ballColor = `hsl(${Math.random()*360}, 80%, 60%)`;
 
-    // Play sound
     hitSound.currentTime = 0;
     hitSound.play();
 
@@ -137,63 +135,59 @@ function update() {
   if (ballY > canvas.height - ballRadius) {
     lives--;
     if (lives <= 0) {
-      gameOver = true;
-      gameOverSound.currentTime = 0;
       gameOverSound.play();
+      gameOver = true;
+      restartBtn.style.display = "inline-block"; // show restart button
     } else {
-      ballX = canvas.width / 2;
-      ballY = canvas.height / 2;
-      ballDX = 4 * (Math.random() > 0.5 ? 1 : -1);
-      ballDY = -3;
-      ballColor = "#fff";
+      resetBall();
     }
   }
 }
 
-// Loop
-function gameLoop() {
-  update();
-  draw();
-  requestAnimationFrame(gameLoop);
+// Reset ball position
+function resetBall() {
+  ballX = canvas.width / 2;
+  ballY = canvas.height / 2;
+  ballDX = 4 * (Math.random() > 0.5 ? 1 : -1);
+  ballDY = -3;
+  ballColor = "#fff";
 }
-
-// Keyboard controls
-document.addEventListener("keydown", e => {
-  if (e.key === "Right" || e.key === "ArrowRight") rightPressed = true;
-  if (e.key === "Left" || e.key === "ArrowLeft") leftPressed = true;
-  if (e.key === "Enter" && gameOver) {
-    restartGame();
-  }
-});
-document.addEventListener("keyup", e => {
-  if (e.key === "Right" || e.key === "ArrowRight") rightPressed = false;
-  if (e.key === "Left" || e.key === "ArrowLeft") leftPressed = false;
-});
-
-// Mobile touch controls
-canvas.addEventListener("touchstart", e => {
-  const touchX = e.touches[0].clientX;
-  if (touchX < canvas.width / 2) {
-    leftPressed = true;
-  } else {
-    rightPressed = true;
-  }
-});
-canvas.addEventListener("touchend", () => {
-  leftPressed = false;
-  rightPressed = false;
-});
 
 // Restart game
 function restartGame() {
   score = 0;
   lives = 3;
   gameOver = false;
-  ballX = canvas.width / 2;
-  ballY = canvas.height / 2;
-  ballDX = 4;
-  ballDY = -3;
-  ballColor = "#fff";
+  resetBall();
+  restartBtn.style.display = "none"; // hide button
 }
+
+// Game loop
+function gameLoop() {
+  update();
+  draw();
+  requestAnimationFrame(gameLoop);
+}
+
+// Keyboard
+document.addEventListener("keydown", e => {
+  if (e.key === "Right" || e.key === "ArrowRight") rightPressed = true;
+  if (e.key === "Left" || e.key === "ArrowLeft") leftPressed = true;
+});
+document.addEventListener("keyup", e => {
+  if (e.key === "Right" || e.key === "ArrowRight") rightPressed = false;
+  if (e.key === "Left" || e.key === "ArrowLeft") leftPressed = false;
+});
+
+// Mobile controls (finger drag)
+canvas.addEventListener("touchmove", e => {
+  const touchX = e.touches[0].clientX - canvas.getBoundingClientRect().left;
+  paddleX = touchX - paddleWidth / 2;
+  if (paddleX < 0) paddleX = 0;
+  if (paddleX > canvas.width - paddleWidth) paddleX = canvas.width - paddleWidth;
+});
+
+// Restart button
+restartBtn.addEventListener("click", restartGame);
 
 gameLoop();
